@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { doc, updateDoc, increment, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, deleteDoc } from 'firebase/firestore'
+import { doc, updateDoc, increment, collection, setDoc, query, orderBy, onSnapshot, serverTimestamp, deleteDoc } from 'firebase/firestore'
 import { httpsCallable } from 'firebase/functions'
 import { db, functions } from '../lib/firebase'
-import { Trash2, MessageCircle, Heart, BarChart3, Share, X, Info, Star } from 'lucide-react'
+import { Trash2, MessageCircle, Heart, BarChart3, Share, X, Info, Star, Flag } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import toast from 'react-hot-toast'
 
 function timeAgo(date) {
   if (!date) return ''
@@ -24,11 +25,17 @@ function timeAgo(date) {
 export default function PostItem({ post }) {
   const { user } = useAuth()
   const postRef = useRef(null)
+  const hasViewed = useRef(false)
+  
   const [comments, setComments] = useState([])
   const [commentText, setCommentText] = useState('')
   const [hasRated, setHasRated] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false)
+  
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
+  const [reportReason, setReportReason] = useState('')
+  const [isReporting, setIsReporting] = useState(false)
 
   // Determine if the current user has permission to delete this post
   // Owner (vvisemen) can delete anything. Authors can delete their own posts.
@@ -62,22 +69,53 @@ export default function PostItem({ post }) {
   }, [post.id])
 
   useEffect(() => {
-    if (!postRef.current) return;
+    if (!postRef.current || hasViewed.current) return;
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        if (!sessionStorage.getItem(`viewed_${post.id}`)) {
-          sessionStorage.setItem(`viewed_${post.id}`, 'true')
-          updateDoc(doc(db, 'posts', post.id), {
-            viewCount: increment(1)
-          }).catch(() => {})
-        }
+      if (entries[0].isIntersecting && !hasViewed.current) {
+        hasViewed.current = true
+        setTimeout(() => {
+          if (!sessionStorage.getItem(`viewed_${post.id}`)) {
+            sessionStorage.setItem(`viewed_${post.id}`, 'true')
+            updateDoc(doc(db, 'posts', post.id), {
+              viewCount: increment(1)
+            }).catch(() => {})
+          }
+        }, 1000)
         observer.disconnect()
       }
-    }, { threshold: 0.5 });
+    }, { threshold: 0.6 });
     
     observer.observe(postRef.current);
     return () => observer.disconnect();
   }, [post.id])
+
+  const handleReport = async () => {
+    if (!user) {
+      toast.error('You must be logged in to report a post.')
+      return
+    }
+    if (!reportReason) {
+      toast.error('Please select a reason.')
+      return
+    }
+
+    setIsReporting(true)
+    try {
+      const reportRef = doc(db, 'posts', post.id, 'reports', user.uid)
+      await setDoc(reportRef, {
+        reason: reportReason,
+        reportedBy: user.uid,
+        createdAt: serverTimestamp()
+      })
+      toast.success('Report submitted successfully.')
+      setIsReportModalOpen(false)
+    } catch (error) {
+      console.error('Report error:', error)
+      toast.error('Failed to submit report.')
+    } finally {
+      setIsReporting(false)
+    }
+  }
 
   const handleDelete = async () => {
     if (!window.confirm("Are you sure you want to delete this post?")) return
@@ -193,16 +231,27 @@ export default function PostItem({ post }) {
             </div>
           </div>
           
-          {canDelete && (
-            <button 
-              onClick={handleDelete}
-              disabled={isDeleting}
-              aria-label="Delete post"
-              className="text-[#666] hover:text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-colors disabled:opacity-50"
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setIsReportModalOpen(true)}
+              className="text-[#666] hover:text-[#ff4444] hover:bg-[#ff4444]/10 p-2 rounded-lg transition-colors"
+              aria-label="Report Post"
+              title="Report this post"
             >
-              <Trash2 size={18} />
+              <Flag size={18} />
             </button>
-          )}
+            {canDelete && (
+              <button 
+                onClick={handleDelete}
+                disabled={isDeleting}
+                aria-label="Delete post"
+                title="Delete this post"
+                className="text-[#666] hover:text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-colors disabled:opacity-50"
+              >
+                <Trash2 size={18} />
+              </button>
+            )}
+          </div>
         </div>
       )}
       {post.caption && (
@@ -371,6 +420,49 @@ export default function PostItem({ post }) {
           </div>
         </div>
       )}
+
+      {/* ── Report Modal ──────────────────────────────── */}
+      {isReportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-[320px] bg-[#111] border border-[#333] rounded-2xl p-5 shadow-2xl relative">
+            <button 
+              onClick={() => setIsReportModalOpen(false)}
+              className="absolute top-4 right-4 text-[#555] hover:text-white transition-colors"
+            >
+              <X size={18} />
+            </button>
+            
+            <h3 className="text-white font-bold text-[18px] mb-1">Report Post</h3>
+            <p className="text-[#888] text-[13px] mb-4">Why are you reporting this video?</p>
+            
+            <div className="flex flex-col gap-2 mb-5">
+              {['Scam/Fraud', 'Inappropriate', 'Spam', 'Other'].map(reason => (
+                <label key={reason} className="flex items-center gap-3 p-3 rounded-xl border border-[#222] hover:bg-[#1a1a1a] cursor-pointer transition-colors">
+                  <input 
+                    type="radio" 
+                    name="reportReason" 
+                    value={reason}
+                    checked={reportReason === reason}
+                    onChange={(e) => setReportReason(e.target.value)}
+                    className="accent-white w-4 h-4"
+                  />
+                  <span className="text-[#eee] text-[13px]">{reason}</span>
+                </label>
+              ))}
+            </div>
+
+            <button
+              onClick={handleReport}
+              disabled={isReporting || !reportReason}
+              className="w-full py-3 rounded-xl bg-white text-black font-semibold text-[14px] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors"
+              style={{ fontWeight: 400 }}
+            >
+              {isReporting ? 'Submitting...' : 'Submit Report'}
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
