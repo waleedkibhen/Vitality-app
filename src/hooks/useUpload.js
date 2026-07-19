@@ -9,6 +9,7 @@ const MAX_SIZE_BYTES = 100 * 1024 * 1024 // 100 MB
 const MAX_DURATION_SEC = 60 // 60 seconds limit for clippers
 
 export async function uploadToCloudinary(file, caption, user) {
+  const toastId = toast.loading('Uploading video... 0%')
   try {
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
@@ -21,19 +22,29 @@ export async function uploadToCloudinary(file, caption, user) {
     formData.append('file', file)
     formData.append('upload_preset', uploadPreset)
 
-    const res = await axios.post(`https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, formData)
+    const res = await axios.post(
+      `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, 
+      formData,
+      {
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+          if (percentCompleted < 100) {
+            toast.loading(`Uploading video... ${percentCompleted}%`, { id: toastId })
+          } else {
+            toast.loading(`Finalizing upload...`, { id: toastId })
+          }
+        }
+      }
+    )
+    
     const secureUrl = res.data.secure_url
     const publicId = res.data.public_id
     
     if (!secureUrl) throw new Error("Failed to get secure URL from Cloudinary")
 
-    // Inject q_auto,f_mp4/ directly after /upload/ and change extension to .mp4
-    const urlParts = secureUrl.split('/upload/')
-    const pathWithoutExt = urlParts[1].substring(0, urlParts[1].lastIndexOf('.')) || urlParts[1]
-    const optimizedUrl = `${urlParts[0]}/upload/q_auto,f_mp4/${pathWithoutExt}.mp4`
-
+    // Use raw secureUrl directly as requested (no q_auto/f_mp4 processing)
     const docRef = await addDoc(collection(db, 'posts'), {
-      videoUrl: optimizedUrl,
+      videoUrl: secureUrl,
       cloudinaryPublicId: publicId,
       caption: caption,
       status: 'approved',
@@ -48,12 +59,12 @@ export async function uploadToCloudinary(file, caption, user) {
       createdAt: serverTimestamp()
     })
 
-    toast.success('Video uploaded successfully!')
+    toast.success('Video published instantly!', { id: toastId })
 
     return true
   } catch (err) {
     console.error("Cloudinary/Firebase Upload Error:", err)
-    toast.error(err.response?.data?.error?.message || err.message || "Upload failed")
+    toast.error(err.response?.data?.error?.message || err.message || "Upload failed", { id: toastId })
     throw new Error(err.response?.data?.error?.message || err.message || "Upload failed")
   }
 }
