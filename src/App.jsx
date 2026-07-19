@@ -87,6 +87,7 @@ export default function App() {
           <Feed isPendingUpload={isPendingUpload} />
         </main>
       </div>
+      )}
     </AuthProvider>
   )
 }
