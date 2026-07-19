@@ -36,7 +36,7 @@ export async function uploadToCloudinary(file, caption, user) {
       videoUrl: optimizedUrl,
       cloudinaryPublicId: publicId,
       caption: caption,
-      status: 'pending',
+      status: 'approved',
       ratingSum: 0,
       ratingCount: 0,
       viewCount: 0,
@@ -48,24 +48,7 @@ export async function uploadToCloudinary(file, caption, user) {
       createdAt: serverTimestamp()
     })
 
-    // Run moderation check asynchronously but track it with a toast
-    const moderateVideo = httpsCallable(functions, 'moderateVideo')
-    
-    toast.promise(
-      moderateVideo({ postId: docRef.id, videoUrl: optimizedUrl, cloudinaryPublicId: publicId }),
-      {
-        loading: 'Scanning video for safety...',
-        success: (result) => {
-          if (result?.data?.status === 'flagged') {
-            return 'Post submitted and is currently pending admin review.'
-          }
-          return 'Post published successfully!'
-        },
-        error: 'Moderation failed, post pending review.'
-      }
-    ).catch(e => {
-      console.error("Failed to call moderateVideo:", e)
-    })
+    toast.success('Video uploaded successfully!')
 
     return true
   } catch (err) {

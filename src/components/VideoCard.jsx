@@ -184,28 +184,15 @@ const VideoCard = memo(function VideoCard({ video, onRate, onComment }) {
           </time>
         </div>
 
-        {/* More menu */}
-        <div className="relative">
-          <button
-            className="text-[#333333] hover:text-[#555555] transition-colors p-0.5 shrink-0"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Post options"
-          >
-            <MoreHorizontal size={16} aria-hidden="true" />
-          </button>
-          
-          {menuOpen && (
-            <div className="absolute right-0 top-6 w-32 bg-[#111] border border-[#333] rounded-lg shadow-xl z-20 overflow-hidden">
-              <button 
-                onClick={() => { setReportModalOpen(true); setMenuOpen(false); }}
-                className="w-full text-left px-4 py-2.5 text-[13px] text-[#ff4444] hover:bg-[#1a1a1a] flex items-center gap-2 transition-colors"
-              >
-                <Flag size={14} />
-                Report
-              </button>
-            </div>
-          )}
-        </div>
+        {/* Report Button Explicitly Visible */}
+        <button
+          onClick={() => setReportModalOpen(true)}
+          className="text-[#555555] hover:text-[#ff4444] transition-colors p-1 shrink-0 flex items-center gap-1.5"
+          aria-label="Report Post"
+          title="Report this post"
+        >
+          <Flag size={15} />
+        </button>
       </div>
 
       {/* ── Post text (if any, indented to avatar right edge) */}
