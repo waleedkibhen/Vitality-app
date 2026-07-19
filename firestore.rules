@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Posts ──────────────────────────────────────────────────────────────
+    match /posts/{postId} {
+      // Anyone can read posts (feed filters by status client-side)
+      allow read: if true;
+
+      // Anyone can create a post
+      allow create: if true;
+
+      // Anyone can update or delete (admin UI operates from the browser)
+      allow update, delete: if true;
+    }
+
+    // ── Users ──────────────────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+  }
+}
+

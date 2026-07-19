@@ -1,0 +1,157 @@
+/* ============================================================
+   VIRALITY PREDICTOR — Global CSS
+   Exact Whop 2026 native environment variables & resets
+   ============================================================ */
+
+/* ── Font Imports ──────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── CSS Custom Properties (Whop Token System) ─────────────── */
+:root {
+  /* Page backgrounds */
+  --color-page-background:   #000000;
+  --color-bg-alt:            #0B0B0B;
+  --color-surface:           #151515;
+  --color-surface-raised:    #1A1A1A;
+
+  /* Borders */
+  --color-border:            #1A1A1A;
+  --color-border-subtle:     #222222;
+
+  /* Text */
+  --color-text-primary:      #FFFFFF;
+  --color-text-muted:        #555555;
+  --color-text-muted-2:      #888888;
+
+  /* Brand */
+  --color-accent-blue:       #2563EB;
+  --color-accent-blue-hover: #1D4ED8;
+  --color-accent-vermilion:  #FA4616;
+  --color-icon-blue:         #88B5FF;   /* Whop icon light blue */
+  --color-hover-navy:        #0d1a2e;   /* Icon hover circle bg */
+
+  /* Font stacks — Whop native */
+  --whop-font-inter:   "Inter", "Inter Fallback", system-ui, sans-serif;
+  --font-geist-mono:   "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+
+  /* Frosted-UI letter spacing scale */
+  --letter-spacing-0:  0em;
+  --letter-spacing-1:  0.006em;
+  --letter-spacing-2:  0.011em;
+  --letter-spacing-3:  0.014em;
+  --letter-spacing-4:  0.016em;
+  --letter-spacing-5:  0.019em;
+  --letter-spacing-6:  0.021em;
+  --letter-spacing-7:  0.025em;
+  --letter-spacing-8:  0.031em;
+  --letter-spacing-9:  0.063em;
+}
+
+/* ── Base Resets (exact Whop env rules) ───────────────────── */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    overscroll-behavior-y: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    outline-color: currentColor;
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--color-page-background);
+    color: var(--color-text-primary);
+    font-family: var(--whop-font-inter);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+    overscroll-behavior-y: none;
+  }
+
+  /* Shadows allowed on elevated surfaces (composer card, etc.) */
+  /* Only suppress on elements that shouldn't cast depth: */
+  input, textarea, select, button { box-shadow: none; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar       { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #1f1f1f; }
+
+  /* Focus: thin blue ring */
+  :focus-visible {
+    outline: 1px solid var(--color-accent-blue);
+    outline-offset: 2px;
+  }
+
+  button, input, textarea, select {
+    font-family: var(--whop-font-inter);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  textarea { resize: none; }
+
+  video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+/* ── Component Utilities ───────────────────────────────────── */
+@layer utilities {
+  /* Tab-numeric for timers / counts */
+  .tabular  { font-variant-numeric: tabular-nums; }
+
+  /* Timeline left-margin alignment — width of avatar + gap */
+  .post-indent { padding-left: 52px; } /* 40px avatar + 12px gap */
+
+  /* Rating button base */
+  .rate-btn {
+    flex: 1;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid #222222;
+    background: #151515;
+    color: #555555;
+    cursor: pointer;
+    transition: background 60ms, color 60ms, border-color 60ms;
+    letter-spacing: var(--letter-spacing-3);
+    user-select: none;
+  }
+  .rate-btn:hover {
+    border-color: #333333;
+    color: #888888;
+  }
+  .rate-btn.active {
+    background: #FA4616;
+    border-color: #FA4616;
+    color: #FFFFFF;
+  }
+
+  /* Progress shimmer */
+  .progress-shimmer {
+    background: linear-gradient(90deg, #2563EB 0%, #3b82f6 40%, #2563EB 80%);
+    background-size: 200% 100%;
+    animation: progress-bar 1.4s linear infinite;
+  }
+
+  @keyframes progress-bar {
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
+  }
+}
