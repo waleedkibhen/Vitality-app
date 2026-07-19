@@ -201,59 +201,58 @@ export default function PostItem({ post }) {
     <div ref={postRef} className="bg-[#111] p-4 rounded-2xl overflow-hidden flex flex-col gap-4">
       
       {/* ── Author Header ── */}
-      {post.author && (
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            {post.author.profilePicUrl ? (
-              <img 
-                src={post.author.profilePicUrl} 
-                alt={post.author.username} 
-                className="w-10 h-10 rounded-full object-cover border border-[#333]"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-[#1a1a1a] border border-[#333] flex items-center justify-center">
-                <span className="text-[#666] text-sm uppercase font-bold">
-                  {post.author.username.charAt(0)}
-                </span>
-              </div>
-            )}
-            <div className="flex flex-col leading-tight">
-              <span className="text-[#f1f1f1] font-bold text-[15px]">{post.author.name}</span>
-              <div className="flex items-center gap-1.5 text-[#888] text-[13px]">
-                <span>@{post.author.username}</span>
-                {createdAtDate && (
-                  <>
-                    <span className="text-[#555]">&middot;</span>
-                    <span>{timeAgo(createdAtDate)}</span>
-                  </>
-                )}
-              </div>
+      {/* ── Author Header ── */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          {post.author?.profilePicUrl ? (
+            <img 
+              src={post.author.profilePicUrl} 
+              alt={post.author?.username || 'user'} 
+              className="w-10 h-10 rounded-full object-cover border border-[#333]"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-[#1a1a1a] border border-[#333] flex items-center justify-center">
+              <span className="text-[#666] text-sm uppercase font-bold">
+                {post.author?.username?.charAt(0) || post.uploader?.charAt(0) || '?'}
+              </span>
+            </div>
+          )}
+          <div className="flex flex-col leading-tight">
+            <span className="text-[#f1f1f1] font-bold text-[15px]">{post.author?.name || post.uploader || 'Unknown'}</span>
+            <div className="flex items-center gap-1.5 text-[#888] text-[13px]">
+              <span>@{post.author?.username || 'user'}</span>
+              {createdAtDate && (
+                <>
+                  <span className="text-[#555]">&middot;</span>
+                  <span>{timeAgo(createdAtDate)}</span>
+                </>
+              )}
             </div>
           </div>
-          
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setIsReportModalOpen(true)}
-              className="text-[#666] hover:text-[#ff4444] hover:bg-[#ff4444]/10 p-2 rounded-lg transition-colors"
-              aria-label="Report Post"
-              title="Report this post"
-            >
-              <Flag size={18} />
-            </button>
-            {canDelete && (
-              <button 
-                onClick={handleDelete}
-                disabled={isDeleting}
-                aria-label="Delete post"
-                title="Delete this post"
-                className="text-[#666] hover:text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-colors disabled:opacity-50"
-              >
-                <Trash2 size={18} />
-              </button>
-            )}
-          </div>
         </div>
-      )}
+        
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setIsReportModalOpen(true)}
+            className="text-[#666] hover:text-[#ff4444] hover:bg-[#ff4444]/10 p-2 rounded-lg transition-colors"
+            aria-label="Report Post"
+            title="Report this post"
+          >
+            <Flag size={18} />
+          </button>
+          {canDelete && (
+            <button 
+              onClick={handleDelete}
+              disabled={isDeleting}
+              aria-label="Delete post"
+              title="Delete this post"
+              className="text-[#666] hover:text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-colors disabled:opacity-50"
+            >
+              <Trash2 size={18} />
+            </button>
+          )}
+        </div>
+      </div>
       {post.caption && (
         <div 
           className="text-[#f1f1f1] text-[15px] break-words whitespace-pre-wrap"

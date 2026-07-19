@@ -333,7 +333,7 @@ export default function Composer({ setPendingUpload }) {
       <input
         ref={fileInputRef}
         type="file"
-        accept="video/*"
+        accept="video/mp4,video/quicktime,video/x-m4v,video/*"
         className="hidden"
         aria-label="Choose a video file"
         onChange={onFileInput}
