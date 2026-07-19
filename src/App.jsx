@@ -10,6 +10,7 @@ import Composer from './components/Composer'
 import Feed from './components/Feed'
 import AdminModeration from './components/AdminModeration'
 import { AuthProvider } from './context/AuthContext'
+import { Toaster } from 'react-hot-toast'
 
 export default function App() {
   const [isPendingUpload, setPendingUpload] = useState(false)
@@ -21,20 +22,33 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
-  if (isAdmin) {
-    return (
-      <AuthProvider>
-        <AdminModeration />
-      </AuthProvider>
-    )
-  }
-
   return (
     <AuthProvider>
-      <div className="min-h-screen bg-black font-inter">
-        
-        {/* Single-column, centered layout */}
-        <main
+      <Toaster 
+        position="bottom-center"
+        toastOptions={{
+          style: {
+            background: '#111',
+            color: '#fff',
+            border: '1px solid #222',
+            fontFamily: 'Geist, Inter, sans-serif',
+            fontWeight: 400,
+            fontSize: '14px',
+            borderRadius: '12px',
+            boxShadow: '0 4px 14px rgba(0,0,0,0.5)'
+          },
+          success: {
+            iconTheme: { primary: '#fff', secondary: '#111' }
+          }
+        }}
+      />
+      {isAdmin ? (
+        <AdminModeration />
+      ) : (
+        <div className="min-h-screen bg-black font-inter">
+          
+          {/* Single-column, centered layout */}
+          <main
           className="mx-auto pt-8 px-4 pb-24"
           style={{ maxWidth: '640px' }}
           role="main"

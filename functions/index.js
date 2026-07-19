@@ -112,18 +112,27 @@ exports.moderateVideo = functions.runWith({
     timeoutSeconds: 540,
     memory: '256MB'
 }).region("europe-west1").https.onCall(async (data, context) => {
-    const { postId, videoUrl, cloudinaryPublicId } = data;
-    if (!postId || !videoUrl) return;
+    const { postId, videoUrl, cloudinaryPublicId } = data || {};
+    
+    if (!postId || !videoUrl) {
+        console.error("Missing postId or videoUrl", { data });
+        throw new functions.https.HttpsError('invalid-argument', 'Missing required fields');
+    }
 
     console.log(`Moderating new video for post ${postId} via Sightengine`);
 
     // Force the URL to be a plain text string so Sightengine can read it
     const finalVideoUrl = typeof videoUrl === 'string' ? videoUrl : (videoUrl.secure_url || videoUrl.url);
 
+    if (!finalVideoUrl) {
+        console.error("Failed to extract plain URL from videoUrl object", videoUrl);
+        throw new functions.https.HttpsError('invalid-argument', 'Invalid videoUrl format');
+    }
+
     try {
         const response = await axios.get('https://api.sightengine.com/1.0/video/check-sync.json', {
             params: {
-                models: 'nudity-2.1,gore-2.0',
+                models: 'nudity-2.1,weapon,gore',
                 api_user: '623553132', 
                 api_secret: 'FGxXdSDqmQ7ecqZMwNG2yi3hrhUTimh2',
                 stream_url: finalVideoUrl
@@ -135,6 +144,7 @@ exports.moderateVideo = functions.runWith({
         if (response.data && response.data.data && response.data.data.frames) {
             isExplicit = response.data.data.frames.some(frame => 
                 (frame.nudity && frame.nudity.none < 0.5) || 
+                (frame.weapon && frame.weapon.prob > 0.5) ||
                 (frame.gore && frame.gore.prob > 0.5)
             );
         }
@@ -143,6 +153,8 @@ exports.moderateVideo = functions.runWith({
         
         // Use set with merge: true to guarantee it saves without crashing
         await admin.firestore().collection('posts').doc(postId).set({ status: newStatus }, { merge: true });
+        
+        return { success: true, status: newStatus };
 
     } catch (error) {
         console.error("SIGHTENGINE FAILED:", error.message);
@@ -150,7 +162,37 @@ exports.moderateVideo = functions.runWith({
         // THE ULTIMATE SAFETY NET: Guarantee it goes to the Admin section
         await admin.firestore().collection('posts').doc(postId).set({ 
             status: 'flagged',
-            adminNote: 'Sightengine connection failed'
+            adminNote: 'Sightengine connection failed: ' + error.message
         }, { merge: true });
+        
+        throw new functions.https.HttpsError('internal', 'Sightengine moderation failed', error.message);
     }
+});
+
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+
+exports.onReportAdded = onDocumentCreated({
+    document: 'posts/{postId}/reports/{reportId}',
+    region: 'europe-west1'
+}, async (event) => {
+    const postId = event.params.postId;
+    const postRef = admin.firestore().collection('posts').doc(postId);
+    
+    await admin.firestore().runTransaction(async (transaction) => {
+        const postDoc = await transaction.get(postRef);
+        if (!postDoc.exists) return;
+        
+        const currentCount = postDoc.data().reportCount || 0;
+        const newCount = currentCount + 1;
+        
+        if (newCount >= 3 && postDoc.data().status !== 'flagged') {
+            transaction.update(postRef, { 
+                reportCount: newCount,
+                status: 'flagged',
+                adminNote: 'Auto-flagged: Reached 3 user reports threshold'
+            });
+        } else {
+            transaction.update(postRef, { reportCount: newCount });
+        }
+    });
 });

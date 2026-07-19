@@ -3,6 +3,7 @@ import axios from 'axios'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { httpsCallable } from 'firebase/functions'
 import { db, functions } from '../lib/firebase'
+import toast from 'react-hot-toast'
 
 const MAX_SIZE_BYTES = 100 * 1024 * 1024 // 100 MB
 const MAX_DURATION_SEC = 60 // 60 seconds limit for clippers
@@ -38,6 +39,7 @@ export async function uploadToCloudinary(file, caption, user) {
       status: 'pending',
       ratingSum: 0,
       ratingCount: 0,
+      viewCount: 0,
       author: user ? {
         username: user.username,
         profilePicUrl: user.profilePicUrl,
@@ -46,18 +48,29 @@ export async function uploadToCloudinary(file, caption, user) {
       createdAt: serverTimestamp()
     })
 
-    try {
-      const moderateVideo = httpsCallable(functions, 'moderateVideo')
-      moderateVideo({ postId: docRef.id, videoUrl: optimizedUrl, cloudinaryPublicId: publicId }).catch(e => {
-        console.error("Failed to call moderateVideo in background:", e)
-      })
-    } catch (e) {
-      console.error("Failed to initiate moderateVideo:", e)
-    }
+    // Run moderation check asynchronously but track it with a toast
+    const moderateVideo = httpsCallable(functions, 'moderateVideo')
+    
+    toast.promise(
+      moderateVideo({ postId: docRef.id, videoUrl: optimizedUrl, cloudinaryPublicId: publicId }),
+      {
+        loading: 'Scanning video for safety...',
+        success: (result) => {
+          if (result?.data?.status === 'flagged') {
+            return 'Post submitted and is currently pending admin review.'
+          }
+          return 'Post published successfully!'
+        },
+        error: 'Moderation failed, post pending review.'
+      }
+    ).catch(e => {
+      console.error("Failed to call moderateVideo:", e)
+    })
 
     return true
   } catch (err) {
     console.error("Cloudinary/Firebase Upload Error:", err)
+    toast.error(err.response?.data?.error?.message || err.message || "Upload failed")
     throw new Error(err.response?.data?.error?.message || err.message || "Upload failed")
   }
 }
