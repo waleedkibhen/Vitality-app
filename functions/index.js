@@ -11,12 +11,13 @@ exports.verifyWhopUser = functions.https.onRequest((req, res) => {
   cors(req, res, async () => {
     try {
       // 1. Extract and validate JWT using user's specified approach
-      const whopToken = req.headers['x-whop-user-token']
+      const whopToken = req.query.token || req.headers['x-whop-user-token']
+      console.log('Incoming Request Query:', JSON.stringify(req.query))
       console.log('Incoming Headers:', JSON.stringify(req.headers))
       
       if (!whopToken) {
-        console.error('MISSING TOKEN HEADER')
-        return res.status(401).json({ error: 'Missing x-whop-user-token header' })
+        console.error('MISSING TOKEN')
+        return res.status(401).json({ error: 'Missing token parameter or x-whop-user-token header' })
       }
 
       let userId, username, profile_pic_url;

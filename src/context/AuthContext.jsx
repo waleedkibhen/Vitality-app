@@ -13,21 +13,20 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     async function initializeWhopAuth() {
       try {
-        // We use the Vite proxy to route this relative path securely to the local emulator,
-        // avoiding CORS and Mixed Content blocks from the Cloudflare HTTPS tunnel.
-        const endpoint = '/api/verifyWhopUser'
+        // We use the Vite proxy in local dev, but use the absolute Cloud Function URL in production on Cloudflare.
+        const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'virality-ede9d'
+        const endpoint = import.meta.env.DEV 
+          ? '/api/verifyWhopUser' 
+          : `https://us-central1-${projectId}.cloudfunctions.net/verifyWhopUser`
         
-        // Extract the Whop token from the iframe URL parameters
-        const urlParams = new URLSearchParams(window.location.search);
+        // Safely extract the Whop token whether it's in the search query or stuck behind a hash router
+        const queryStr = window.location.search || (window.location.hash.includes('?') ? '?' + window.location.hash.split('?')[1] : '');
+        const urlParams = new URLSearchParams(queryStr);
         const whopToken = urlParams.get('token') || urlParams.get('biz_user_token') || urlParams.get('id_token');
 
-        // Note: The @whop-apps/dev-proxy will physically inject the x-whop-user-token 
-        // into the headers of this request when running locally.
-        const res = await axios.get(`${endpoint}?_cb=${Date.now()}`, {
-          headers: {
-            'x-whop-user-token': whopToken || 'dev_mock_token'
-          }
-        })
+        // Pass the token as a query parameter to avoid CORS preflight header blocking
+        const finalToken = whopToken || 'dev_mock_token';
+        const res = await axios.get(`${endpoint}?token=${finalToken}&_cb=${Date.now()}`)
         
         if (res.data.mock) {
           setUser(res.data.user)
