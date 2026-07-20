@@ -23,13 +23,8 @@ function MainApp() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <p className="text-[#888] font-medium animate-pulse tracking-wide text-sm">Authenticating with Whop...</p>
-      </div>
-    )
-  }
+  // Removing the blocking loading screen for a faster apparent load time
+  // The app will render immediately and update state once auth resolves.
 
   return (
     <>
