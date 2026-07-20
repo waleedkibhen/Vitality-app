@@ -67,7 +67,7 @@ function VideoPreview({ file, onRemove }) {
       style={{ border: '1px solid #333333' }}
     >
       <video
-        src={previewUrl}
+        src={`${previewUrl}#t=0.001`}
         className="w-full block bg-black"
         style={{ maxHeight: '50vh', objectFit: 'contain' }}
         controls

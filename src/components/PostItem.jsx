@@ -263,7 +263,8 @@ export default function PostItem({ post }) {
       {post.videoUrl && (
         <div className="bg-black border border-[#222] rounded-xl overflow-hidden flex justify-center items-center">
           <video
-            src={post.videoUrl}
+            src={`${post.videoUrl}#t=0.001`}
+            poster={post.videoUrl.replace(/\.[^/.]+$/, ".jpg")}
             controls
             playsInline
             preload="metadata"

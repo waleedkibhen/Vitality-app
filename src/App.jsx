@@ -57,10 +57,10 @@ export default function App() {
           {/* Header */}
           <div className="mb-6 flex items-start justify-between">
             <div className="flex flex-col">
-              <h1 className="text-white text-[22px] font-semibold tracking-tight leading-none mb-1.5">
+              <h1 className="text-white text-[19px] font-semibold tracking-tight leading-none mb-1.5">
                 Rate the Videos
               </h1>
-              <p className="text-[#999] text-[15px] font-normal leading-snug">
+              <p className="text-[#999] text-[14px] font-normal leading-snug">
                 Help clippers improve by rating their content and sharing feedback.
               </p>
             </div>
