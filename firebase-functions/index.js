@@ -20,12 +20,13 @@ exports.verifyWhopUser = functions.https.onRequest((req, res) => {
         return res.status(401).json({ error: 'Missing token parameter or x-whop-user-token header' })
       }
 
-      let userId, username, profile_pic_url;
+      let userId, username, name, profile_pic_url;
 
       if (whopToken === 'dev_mock_token') {
         console.log('Intercepted dev_mock_token. Bypassing Whop API.')
         userId = 'mock_dev_user_123'
-        username = 'Test Clipper'
+        username = 'testclipper'
+        name = 'Test Clipper'
         profile_pic_url = 'https://ui-avatars.com/api/?name=Test+Clipper&background=random'
       } else {
         try {
@@ -44,7 +45,8 @@ exports.verifyWhopUser = functions.https.onRequest((req, res) => {
           const profileData = await whopClient.users.retrieve(userId)
           
           username = profileData.username || `whop_${userId}`
-          profile_pic_url = profileData.profile_picture?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=random`
+          name = profileData.name || [profileData.first_name, profileData.last_name].filter(Boolean).join(' ') || username
+          profile_pic_url = profileData.profile_picture?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`
         } catch (err) {
           console.error('WHOP SDK FAILED:', err.message)
           return res.status(401).json({ error: 'Failed to extract or fetch Whop profile', details: err.message })
@@ -59,6 +61,7 @@ exports.verifyWhopUser = functions.https.onRequest((req, res) => {
           mock: true,
           user: {
             username,
+            name,
             profilePicUrl: profile_pic_url
           }
         })
@@ -67,6 +70,7 @@ exports.verifyWhopUser = functions.https.onRequest((req, res) => {
       // 3. Save/Update the user's details into Firestore
       await admin.firestore().collection('users').doc(userId).set({
         username,
+        name,
         profilePicUrl: profile_pic_url,
         whopId: userId,
         lastLogin: new Date()

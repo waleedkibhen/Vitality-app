@@ -46,7 +46,7 @@ function MainApp() {
           }
         }}
       />
-      {isAdmin ? (
+      {isAdmin && (user?.username === 'vvisemen' || user?.username === '@vvisemen') ? (
         <AdminModeration />
       ) : (
         <div className="min-h-screen bg-black font-inter">
@@ -68,22 +68,26 @@ function MainApp() {
                 Help clippers improve by rating their content and sharing feedback.
               </p>
             </div>
-            <a
-              href="#admin"
-              id="admin-dashboard-btn"
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: '#1a1a1a', border: '1px solid #333',
-                borderRadius: 10, padding: '7px 13px',
-                color: '#aaa', fontSize: 13, fontWeight: 600,
-                textDecoration: 'none', whiteSpace: 'nowrap',
-                transition: 'all 0.15s', flexShrink: 0
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#222'; e.currentTarget.style.borderColor = '#555'; e.currentTarget.style.color = '#fff' }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#1a1a1a'; e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#aaa' }}
-            >
-              🛡 Admin
-            </a>
+            
+            {/* Show Admin button only for vvisemen */}
+            {(user?.username === 'vvisemen' || user?.username === '@vvisemen') && (
+              <a
+                href="#admin"
+                id="admin-dashboard-btn"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  background: '#1a1a1a', border: '1px solid #333',
+                  borderRadius: 10, padding: '7px 13px',
+                  color: '#aaa', fontSize: 13, fontWeight: 600,
+                  textDecoration: 'none', whiteSpace: 'nowrap',
+                  transition: 'all 0.15s', flexShrink: 0
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#222'; e.currentTarget.style.borderColor = '#555'; e.currentTarget.style.color = '#fff' }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#1a1a1a'; e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#aaa' }}
+              >
+                🛡 Admin
+              </a>
+            )}
           </div>
           
           <div className="mb-10">

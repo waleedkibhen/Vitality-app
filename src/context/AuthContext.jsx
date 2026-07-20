@@ -54,6 +54,7 @@ export function AuthProvider({ children }) {
           // Save the profile info to global state
           setUser({
             username: userData.username,
+            name: userData.name,
             profilePicUrl: userData.profilePicUrl
           })
         }
