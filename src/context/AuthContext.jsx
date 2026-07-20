@@ -9,6 +9,7 @@ const AuthContext = createContext()
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [authError, setAuthError] = useState(null)
 
   useEffect(() => {
     async function initializeWhopAuth() {
@@ -51,6 +52,11 @@ export function AuthProvider({ children }) {
 
       } catch (err) {
         console.error("Silent Auth Failed:", err.response?.data || err.message)
+        let errorMsg = err.message
+        if (err.response?.data) {
+          errorMsg = typeof err.response.data === 'string' ? err.response.data : JSON.stringify(err.response.data)
+        }
+        setAuthError(`Auth Failed: ${errorMsg}`)
       } finally {
         setLoading(false)
       }
@@ -60,7 +66,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ user, loading, authError }}>
       {children}
     </AuthContext.Provider>
   )

@@ -15,7 +15,7 @@ import { Toaster } from 'react-hot-toast'
 function MainApp() {
   const [isPendingUpload, setPendingUpload] = useState(false)
   const [isAdmin, setIsAdmin] = useState(window.location.hash === '#admin')
-  const { loading, user } = useAuth()
+  const { loading, user, authError } = useAuth()
 
   useEffect(() => {
     const onHash = () => setIsAdmin(window.location.hash === '#admin')
@@ -95,8 +95,13 @@ function MainApp() {
             {user ? (
               <Composer setPendingUpload={setPendingUpload} />
             ) : (
-              <div className="bg-[#111] border border-[#222] rounded-xl p-6 text-center">
+              <div className="bg-[#111] border border-[#222] rounded-xl p-6 text-center flex flex-col gap-3">
                 <p className="text-[#888] text-[14px]">You must be logged in via Whop to post videos.</p>
+                {authError && (
+                  <div className="bg-red-950/40 border border-red-900/50 rounded-lg p-3 text-left overflow-hidden">
+                    <p className="text-red-400 text-[12px] font-mono break-all">{authError}</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
