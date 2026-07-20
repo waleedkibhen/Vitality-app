@@ -55,12 +55,12 @@ export default function App() {
           aria-label="Virality Predictor"
         >
           {/* Header */}
-          <div className="mb-4 flex items-start justify-between">
+          <div className="mb-6 flex items-start justify-between">
             <div className="flex flex-col">
-              <h1 className="text-white text-[17px] font-semibold tracking-tight leading-none mb-1">
+              <h1 className="text-white text-[22px] font-semibold tracking-tight leading-none mb-1.5">
                 Rate the Videos
               </h1>
-              <p className="text-[#888] text-[13px] font-normal leading-snug">
+              <p className="text-[#999] text-[15px] font-normal leading-snug">
                 Help clippers improve by rating their content and sharing feedback.
               </p>
             </div>
@@ -71,7 +71,7 @@ export default function App() {
                 display: 'flex', alignItems: 'center', gap: 6,
                 background: '#1a1a1a', border: '1px solid #333',
                 borderRadius: 10, padding: '7px 13px',
-                color: '#aaa', fontSize: 12, fontWeight: 600,
+                color: '#aaa', fontSize: 13, fontWeight: 600,
                 textDecoration: 'none', whiteSpace: 'nowrap',
                 transition: 'all 0.15s', flexShrink: 0
               }}
@@ -82,7 +82,9 @@ export default function App() {
             </a>
           </div>
           
-          <Composer setPendingUpload={setPendingUpload} />
+          <div className="mb-10">
+            <Composer setPendingUpload={setPendingUpload} />
+          </div>
           
           <Feed isPendingUpload={isPendingUpload} />
         </main>
