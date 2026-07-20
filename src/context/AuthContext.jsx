@@ -36,6 +36,14 @@ export function AuthProvider({ children }) {
 
         const { customToken } = res.data
 
+        if (!customToken) {
+          throw new Error(`Backend did not return customToken. Received: ${JSON.stringify(res.data)}`)
+        }
+        
+        if (typeof customToken !== 'string') {
+          throw new Error(`Backend returned customToken as a ${typeof customToken} instead of string. Value: ${JSON.stringify(customToken)}`)
+        }
+
         // Silently sign in to Firebase with the generated custom token
         const userCredential = await signInWithCustomToken(auth, customToken)
 
