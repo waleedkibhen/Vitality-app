@@ -87,7 +87,9 @@ function MainApp() {
           </div>
           
           <div className="mb-10">
-            {user ? (
+            {loading ? (
+              <div className="bg-[#111] border border-[#222] rounded-xl h-[120px] animate-pulse" />
+            ) : user ? (
               <Composer setPendingUpload={setPendingUpload} />
             ) : (
               <div className="bg-[#111] border border-[#222] rounded-xl p-6 text-center flex flex-col gap-3">
