@@ -103,6 +103,7 @@ export default function Composer({ setPendingUpload }) {
 
   const [text, setText]           = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
+  const [agreedToStandards, setAgreedToStandards] = useState(false)
   
   // Pick placeholder ONCE on mount
   const [currentPlaceholder] = useState(
@@ -132,7 +133,7 @@ export default function Composer({ setPendingUpload }) {
   const isReady     = stage === 'done'
   const isError     = stage === 'error'
   // We use the raw textContent length to determine if we can post
-  const canPost     = isReady && text.trim().length > 0 && text.length <= MAX_CHARS
+  const canPost     = isReady && text.trim().length > 0 && text.length <= MAX_CHARS && agreedToStandards
 
   const handlePost = async () => {
     if (!canPost || isProcessing) return
@@ -147,6 +148,7 @@ export default function Composer({ setPendingUpload }) {
       // Only reset composer state after successful upload/document creation
       if (textRef.current) textRef.current.innerHTML = ''
       setText('')
+      setAgreedToStandards(false)
       reset()
     } catch (err) {
       alert(`Upload failed: ${err.message}`)
@@ -243,8 +245,22 @@ export default function Composer({ setPendingUpload }) {
           </div>
         )}
 
+        {/* ── Community Standards Checkbox ───────────────────── */}
+        <div className="px-4 py-2 bg-[#0a0a0a] border-t border-[#222222] flex items-start gap-2.5">
+          <input
+            type="checkbox"
+            id="communityStandards"
+            checked={agreedToStandards}
+            onChange={(e) => setAgreedToStandards(e.target.checked)}
+            className="mt-0.5 accent-blue-600 w-3.5 h-3.5 cursor-pointer rounded-sm border-[#444] bg-[#111]"
+          />
+          <label htmlFor="communityStandards" className="text-[11px] text-[#888] leading-tight cursor-pointer select-none">
+            I agree to the Community Standards. Obscene or scam content will result in a permanent ban.
+          </label>
+        </div>
+
         {/* ── Action bar ───────────────────────────── */}
-        <div className="flex items-center justify-between px-4 pt-1">
+        <div className="flex items-center justify-between px-4 pt-3 pb-1 border-t border-[#222222]">
 
           {/* LEFT SIDE: Formatting Options */}
           <div className="flex items-center gap-1.5">

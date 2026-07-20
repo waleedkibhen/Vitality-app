@@ -35,23 +35,23 @@ export async function uploadToCloudinary(file, caption, user) {
     if (!secureUrl) throw new Error("Failed to get secure URL from Cloudinary")
 
     // Use raw secureUrl directly as requested (no q_auto/f_mp4 processing)
-    const docRef = await addDoc(collection(db, 'posts'), {
-      videoUrl: secureUrl,
-      cloudinaryPublicId: publicId,
-      caption: caption,
-      status: 'approved',
-      ratingSum: 0,
-      ratingCount: 0,
-      viewCount: 0,
-      author: user ? {
-        username: user.username,
-        profilePicUrl: user.profilePicUrl,
-        name: user.name || user.username
-      } : null,
-      createdAt: serverTimestamp()
-    })
+      const docRef = await addDoc(collection(db, 'posts'), {
+        videoUrl: secureUrl,
+        cloudinaryPublicId: publicId,
+        caption: caption,
+        status: 'pending_review',
+        ratingSum: 0,
+        ratingCount: 0,
+        viewCount: 0,
+        author: user ? {
+          username: user.username,
+          profilePicUrl: user.profilePicUrl,
+          name: user.name || user.username
+        } : null,
+        createdAt: serverTimestamp()
+      })
 
-    toast.success('Video published instantly!', { id: toastId })
+      toast.success('Your post is undergoing a quick safety review.', { id: toastId })
 
     return true
   } catch (err) {

@@ -134,3 +134,90 @@ exports.onReportAdded = onDocumentCreated({
         }
     });
 });
+
+const { OpenAI } = require("openai");
+
+exports.onPostCreated = onDocumentCreated({
+    document: 'posts/{postId}',
+    region: 'us-central1' // Note: change if your firestore is not us-central1
+}, async (event) => {
+    const postDoc = event.data;
+    if (!postDoc) return;
+    
+    const data = postDoc.data();
+    if (data.status !== 'pending_review') return;
+    
+    const postId = event.params.postId;
+    const postRef = admin.firestore().collection('posts').doc(postId);
+    
+    try {
+        const apiKey = process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            console.error("Missing OPENAI_API_KEY. Approving post by default.");
+            await postRef.update({ status: 'approved' });
+            return;
+        }
+
+        const openai = new OpenAI({ apiKey });
+        
+        // Strip HTML tags from caption
+        const rawCaption = data.caption || "";
+        const plainTextCaption = rawCaption.replace(/<[^>]*>?/gm, '');
+        
+        const inputs = [];
+        if (plainTextCaption.trim().length > 0) {
+            inputs.push({ type: "text", text: plainTextCaption });
+        }
+        
+        const publicId = data.cloudinaryPublicId;
+        if (publicId) {
+            const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+            // Generate frame URLs directly from Cloudinary
+            const frame0 = `https://res.cloudinary.com/${cloudName}/video/upload/so_0/v1/${publicId}.jpg`;
+            const frame50 = `https://res.cloudinary.com/${cloudName}/video/upload/so_50p/v1/${publicId}.jpg`;
+            
+            inputs.push({ type: "image_url", image_url: { url: frame0 } });
+            inputs.push({ type: "image_url", image_url: { url: frame50 } });
+        }
+
+        if (inputs.length === 0) {
+            await postRef.update({ status: 'approved' });
+            return;
+        }
+
+        const moderation = await openai.moderations.create({
+            model: "omni-moderation-latest",
+            input: inputs
+        });
+
+        const result = moderation.results[0];
+        const threshold = parseFloat(process.env.MODERATION_THRESHOLD || "0.8");
+        
+        let isFlagged = result.flagged; // OpenAI's default boolean flag
+        
+        // Also check continuous scores against our custom threshold
+        const scores = result.category_scores;
+        for (const [category, score] of Object.entries(scores)) {
+            if (score >= threshold) {
+                isFlagged = true;
+                console.log(`Flagged due to category [${category}] score: ${score}`);
+                break;
+            }
+        }
+        
+        if (isFlagged) {
+            await postRef.update({ 
+                status: 'flagged',
+                moderationResult: result // Save the result for admin review
+            });
+            console.log(`Post ${postId} flagged and hidden.`);
+        } else {
+            await postRef.update({ status: 'approved' });
+            console.log(`Post ${postId} approved and live.`);
+        }
+    } catch (err) {
+        console.error("Moderation error:", err);
+        // Fail-open or Fail-closed? Usually fail-open (approved) to avoid breaking the app if API is down
+        await postRef.update({ status: 'approved' });
+    }
+});
