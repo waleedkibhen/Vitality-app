@@ -25,7 +25,12 @@ export function AuthProvider({ children }) {
         const whopToken = urlParams.get('token') || urlParams.get('biz_user_token') || urlParams.get('id_token');
 
         // Pass the token as a query parameter to avoid CORS preflight header blocking
-        const finalToken = whopToken || 'dev_mock_token';
+        const finalToken = whopToken || (import.meta.env.DEV ? 'dev_mock_token' : null);
+        
+        if (!finalToken) {
+           throw new Error("No Whop token found in URL.")
+        }
+        
         const res = await axios.get(`${endpoint}?token=${finalToken}&_cb=${Date.now()}`)
         
         if (res.data.mock) {
@@ -51,12 +56,7 @@ export function AuthProvider({ children }) {
         }
 
       } catch (err) {
-        console.error("Silent Auth Failed, falling back to mock admin user for testing:", err.response?.data || err.message)
-        setUser({
-          username: 'vvisemen',
-          name: 'Wisecrafts Admin',
-          profilePicUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin'
-        })
+        console.error("Silent Auth Failed:", err.response?.data || err.message)
       } finally {
         setLoading(false)
       }

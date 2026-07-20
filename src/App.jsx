@@ -9,12 +9,13 @@ import { useState, useEffect } from 'react'
 import Composer from './components/Composer'
 import Feed from './components/Feed'
 import AdminModeration from './components/AdminModeration'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import { Toaster } from 'react-hot-toast'
 
-export default function App() {
+function MainApp() {
   const [isPendingUpload, setPendingUpload] = useState(false)
   const [isAdmin, setIsAdmin] = useState(window.location.hash === '#admin')
+  const { loading, user } = useAuth()
 
   useEffect(() => {
     const onHash = () => setIsAdmin(window.location.hash === '#admin')
@@ -22,10 +23,18 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <p className="text-[#888] font-medium animate-pulse tracking-wide text-sm">Authenticating with Whop...</p>
+      </div>
+    )
+  }
+
   return (
-    <AuthProvider>
+    <>
       <Toaster 
-        position="bottom-center"
+        position="top-center"
         toastOptions={{
           style: {
             background: '#111',
@@ -83,14 +92,27 @@ export default function App() {
           </div>
           
           <div className="mb-10">
-            <Composer setPendingUpload={setPendingUpload} />
+            {user ? (
+              <Composer setPendingUpload={setPendingUpload} />
+            ) : (
+              <div className="bg-[#111] border border-[#222] rounded-xl p-6 text-center">
+                <p className="text-[#888] text-[14px]">You must be logged in via Whop to post videos.</p>
+              </div>
+            )}
           </div>
           
           <Feed isPendingUpload={isPendingUpload} />
         </main>
       </div>
       )}
-    </AuthProvider>
+    </>
   )
 }
 
+export default function App() {
+  return (
+    <AuthProvider>
+      <MainApp />
+    </AuthProvider>
+  )
+}
