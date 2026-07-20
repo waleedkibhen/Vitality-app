@@ -15,23 +15,17 @@ export function AuthProvider({ children }) {
       try {
         // We use the Vite proxy in local dev, but use the absolute Cloud Function URL in production on Cloudflare.
         const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'virality-ede9d'
-        const endpoint = import.meta.env.DEV 
-          ? '/api/verifyWhopUser' 
-          : `https://us-central1-${projectId}.cloudfunctions.net/verifyWhopUser`
-        
-        // Safely extract the Whop token whether it's in the search query or stuck behind a hash router
-        const queryStr = window.location.search || (window.location.hash.includes('?') ? '?' + window.location.hash.split('?')[1] : '');
-        const urlParams = new URLSearchParams(queryStr);
-        const whopToken = urlParams.get('token') || urlParams.get('biz_user_token') || urlParams.get('id_token');
+        // We now route this strictly to our Cloudflare Pages Function Proxy (/api/verifyWhopUser).
+        // Whop's reverse proxy will securely intercept this same-origin request and inject the 
+        // x-whop-user-token header before it hits Cloudflare.
+        // We no longer try to find the token in the URL or Hash.
+        const endpoint = '/api/verifyWhopUser'
 
-        // Pass the token as a query parameter to avoid CORS preflight header blocking
-        const finalToken = whopToken || (import.meta.env.DEV ? 'dev_mock_token' : null);
-        
-        if (!finalToken) {
-           throw new Error("No Whop token found in URL.")
-        }
-        
-        const res = await axios.get(`${endpoint}?token=${finalToken}&_cb=${Date.now()}`)
+        // The Cloudflare function will read the injected header and forward it to Firebase.
+        // In local development, we manually inject our own mock token since we bypass Cloudflare.
+        const res = await axios.get(`${endpoint}?_cb=${Date.now()}`, {
+          headers: import.meta.env.DEV ? { 'x-whop-user-token': 'dev_mock_token' } : undefined
+        })
         
         if (res.data.mock) {
           setUser(res.data.user)
