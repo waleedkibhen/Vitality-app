@@ -22,11 +22,22 @@ export async function uploadToCloudinary(file, caption, user) {
     formData.append('file', file)
     formData.append('upload_preset', uploadPreset)
 
-    // Removed onUploadProgress entirely because triggering toast updates hundreds of times per second
-    // causes massive React re-renders and freezes the browser main thread, making uploads painfully slow.
+    let lastProgress = 0;
+
     const res = await axios.post(
       `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, 
-      formData
+      formData,
+      {
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.lengthComputable) {
+            const percentComplete = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            if (percentComplete > lastProgress) {
+              lastProgress = percentComplete;
+              toast.loading(`Uploading video... ${percentComplete}%`, { id: toastId })
+            }
+          }
+        }
+      }
     )
     
     const secureUrl = res.data.secure_url
