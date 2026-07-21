@@ -232,14 +232,7 @@ export default function PostItem({ post }) {
         </div>
         
         <div className="flex items-center gap-1">
-          <button
-            onClick={() => setIsReportModalOpen(true)}
-            className="text-[#666] hover:text-[#ff4444] hover:bg-[#ff4444]/10 p-2 rounded-lg transition-colors"
-            aria-label="Report Post"
-            title="Report this post"
-          >
-            <Flag size={18} />
-          </button>
+
           {canDelete && (
             <button 
               onClick={handleDelete}
@@ -331,6 +324,16 @@ export default function PostItem({ post }) {
             Overall average score based on all the people that rated this specific video.
           </div>
         </div>
+
+        {/* Report Button (Bottom Right) */}
+        <button
+          onClick={() => setIsReportModalOpen(true)}
+          className="ml-auto flex items-center gap-2 hover:text-[#ff4444] transition-colors group"
+          aria-label="Report Post"
+          title="Report this post"
+        >
+          <Flag size={19} className="group-hover:fill-[#ff4444]/20" />
+        </button>
       </div>
 
       {/* ── Comment Modal ── */}

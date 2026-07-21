@@ -116,6 +116,18 @@ exports.onReportAdded = onDocumentCreated({
     region: 'europe-west1'
 }, async (event) => {
     const postId = event.params.postId;
+    const reportData = event.data.data();
+    const reporterId = reportData?.reportedBy;
+    
+    let isOwner = false;
+    if (reporterId) {
+        const userDoc = await admin.firestore().collection('users').doc(reporterId).get();
+        if (userDoc.exists) {
+            const un = userDoc.data().username;
+            if (un === 'vvisemen' || un === '@vvisemen') isOwner = true;
+        }
+    }
+
     const postRef = admin.firestore().collection('posts').doc(postId);
     
     await admin.firestore().runTransaction(async (transaction) => {
@@ -125,11 +137,13 @@ exports.onReportAdded = onDocumentCreated({
         const currentCount = postDoc.data().reportCount || 0;
         const newCount = currentCount + 1;
         
-        if (newCount >= 3 && postDoc.data().status !== 'flagged') {
+        const threshold = isOwner ? 1 : 3;
+        
+        if (newCount >= threshold && postDoc.data().status !== 'flagged') {
             transaction.update(postRef, { 
                 reportCount: newCount,
                 status: 'flagged',
-                adminNote: 'Auto-flagged: Reached 3 user reports threshold'
+                adminNote: isOwner ? 'Flagged instantly by Admin' : 'Auto-flagged: Reached 3 user reports threshold'
             });
         } else {
             transaction.update(postRef, { reportCount: newCount });
