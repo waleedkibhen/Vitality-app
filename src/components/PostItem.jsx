@@ -218,7 +218,14 @@ export default function PostItem({ post }) {
             </div>
           )}
           <div className="flex flex-col leading-tight">
-            <span className="text-[#f1f1f1] font-bold text-[15px]">{post.author?.name || post.uploader || 'Unknown'}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[#f1f1f1] font-bold text-[15px]">{post.author?.name || post.uploader || 'Unknown'}</span>
+              {post.status === 'pending_review' && (
+                <span className="text-[10px] font-bold bg-[#ffb800]/20 text-[#ffb800] px-1.5 py-0.5 rounded border border-[#ffb800]/30 uppercase tracking-wider">
+                  Pending Review
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-1.5 text-[#888] text-[13px]">
               <span>@{post.author?.username || 'user'}</span>
               {createdAtDate && (

@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import PostItem from './PostItem'
+import { useAuth } from '../context/AuthContext'
 
 export default function Feed({ isPendingUpload }) {
+  const { user } = useAuth()
   const [posts, setPosts] = useState([])
   const [error, setError] = useState(null)
 
@@ -14,8 +16,8 @@ export default function Feed({ isPendingUpload }) {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const newPosts = snapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
-        // Strict filter: ONLY approved posts are visible to the public
-        .filter(post => post.status === 'approved')
+        // Show approved posts to everyone. Show pending posts ONLY to the author.
+        .filter(post => post.status === 'approved' || (user && post.author?.username === user.username))
       setPosts(newPosts)
     }, (err) => {
       console.error("Error fetching posts:", err)
