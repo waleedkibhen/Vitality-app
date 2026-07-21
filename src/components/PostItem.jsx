@@ -101,10 +101,10 @@ export default function PostItem({ post }) {
 
     setIsReporting(true)
     try {
-      const reportRef = doc(db, 'posts', post.id, 'reports', user.uid)
+      const reportRef = doc(db, 'posts', post.id, 'reports', user.username)
       await setDoc(reportRef, {
         reason: reportReason,
-        reportedBy: user.uid,
+        reportedBy: user.username,
         createdAt: serverTimestamp()
       })
       toast.success('Report submitted successfully.')

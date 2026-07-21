@@ -120,12 +120,8 @@ exports.onReportAdded = onDocumentCreated({
     const reporterId = reportData?.reportedBy;
     
     let isOwner = false;
-    if (reporterId) {
-        const userDoc = await admin.firestore().collection('users').doc(reporterId).get();
-        if (userDoc.exists) {
-            const un = userDoc.data().username;
-            if (un === 'vvisemen' || un === '@vvisemen') isOwner = true;
-        }
+    if (reporterId === 'vvisemen' || reporterId === '@vvisemen') {
+        isOwner = true;
     }
 
     const postRef = admin.firestore().collection('posts').doc(postId);
