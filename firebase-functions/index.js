@@ -148,10 +148,14 @@ exports.onReportAdded = onDocumentCreated({
 });
 
 const { OpenAI } = require("openai");
+const { defineSecret } = require('firebase-functions/params');
+
+const openAIKey = defineSecret('OPENAI_API_KEY');
 
 exports.onPostCreated = onDocumentCreated({
     document: 'posts/{postId}',
-    region: 'us-central1' // Note: change if your firestore is not us-central1
+    region: 'us-central1',
+    secrets: [openAIKey]
 }, async (event) => {
     const postDoc = event.data;
     if (!postDoc) return;
@@ -163,7 +167,7 @@ exports.onPostCreated = onDocumentCreated({
     const postRef = admin.firestore().collection('posts').doc(postId);
     
     try {
-        const apiKey = process.env.OPENAI_API_KEY;
+        const apiKey = openAIKey.value();
         if (!apiKey) {
             console.error("Missing OPENAI_API_KEY. Approving post by default.");
             await postRef.update({ status: 'approved' });
