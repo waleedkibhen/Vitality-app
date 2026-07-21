@@ -12,6 +12,11 @@ service cloud.firestore {
 
       // Anyone can update or delete (admin UI operates from the browser)
       allow update, delete: if true;
+      
+      // Allow access to all subcollections (reports, comments, etc)
+      match /{document=**} {
+        allow read, write: if true;
+      }
     }
 
     // ── Users ──────────────────────────────────────────────────────────────
