@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  collection, query, where, orderBy,
+  collection, query, where, orderBy, limit,
   onSnapshot, doc, updateDoc, deleteDoc
 } from 'firebase/firestore'
 import { httpsCallable } from 'firebase/functions'
