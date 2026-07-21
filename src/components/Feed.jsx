@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore'
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import PostItem from './PostItem'
 
@@ -8,7 +8,8 @@ export default function Feed({ isPendingUpload }) {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'))
+    // Limit to 50 posts to prevent massive Firestore read costs as the app scales
+    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(50))
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const newPosts = snapshot.docs

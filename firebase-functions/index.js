@@ -12,8 +12,6 @@ exports.verifyWhopUser = functions.https.onRequest((req, res) => {
     try {
       // 1. Extract and validate JWT using user's specified approach
       const whopToken = req.query.token || req.headers['x-whop-user-token']
-      console.log('Incoming Request Query:', JSON.stringify(req.query))
-      console.log('Incoming Headers:', JSON.stringify(req.headers))
       
       if (!whopToken) {
         console.error('MISSING TOKEN')

@@ -116,6 +116,7 @@ function FlaggedCard({ post }) {
       <div style={{ background: '#000', maxHeight: 420, overflow: 'hidden', display: 'flex', justifyContent: 'center' }}>
         <video
           src={post.videoUrl}
+          poster={post.videoUrl ? post.videoUrl.replace('/upload/', '/upload/f_auto,q_auto/').replace(/\.[^/.]+$/, ".jpg") : undefined}
           controls
           playsInline
           preload="metadata"
@@ -190,7 +191,9 @@ export default function AdminModeration() {
     const q = query(
       collection(db, 'posts'),
       where('status', '==', 'flagged'),
-      orderBy('flaggedAt', 'desc')
+      // Remove orderBy('flaggedAt') to prevent missing data if flaggedAt isn't set, rely on status filter
+      // Add limit to prevent massive read costs if many posts are flagged
+      limit(50)
     )
 
     const unsub = onSnapshot(q, snap => {

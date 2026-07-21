@@ -264,7 +264,7 @@ export default function PostItem({ post }) {
         <div className="bg-black border border-[#222] rounded-xl overflow-hidden flex justify-center items-center">
           <video
             src={`${post.videoUrl}#t=0.001`}
-            poster={post.videoUrl.replace(/\.[^/.]+$/, ".jpg")}
+            poster={post.videoUrl.replace('/upload/', '/upload/f_auto,q_auto/').replace(/\.[^/.]+$/, ".jpg")}
             controls
             playsInline
             preload="metadata"
@@ -356,13 +356,13 @@ export default function PostItem({ post }) {
                   <img src={post.author.profilePicUrl} alt="" className="w-10 h-10 rounded-full object-cover z-10 bg-[#111]" />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-[#1a1a1a] flex items-center justify-center z-10 border border-[#333]">
-                    <span className="text-[#666] font-bold">{post.author.username.charAt(0)}</span>
+                    <span className="text-[#666] font-bold">{post.author?.username?.charAt(0) || '?'}</span>
                   </div>
                 )}
                 <div className="flex flex-col flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 truncate">
-                    <span className="text-white font-bold truncate">{post.author.name}</span>
-                    <span className="text-[#888] text-sm truncate">@{post.author.username}</span>
+                    <span className="text-white font-bold truncate">{post.author?.name || 'Unknown'}</span>
+                    <span className="text-[#888] text-sm truncate">@{post.author?.username || 'user'}</span>
                   </div>
                   {post.caption && (
                     <p className="text-[#ccc] text-[15px] mt-1 break-words whitespace-pre-wrap line-clamp-3">
