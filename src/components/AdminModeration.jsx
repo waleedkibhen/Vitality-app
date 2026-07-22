@@ -158,6 +158,27 @@ function FlaggedCard({ post }) {
             </pre>
           </div>
         )}
+
+        {post.openai_raw_dump && (
+          <div style={{ marginTop: 12 }}>
+            <span style={{ color: '#60a5fa', fontSize: 12, fontWeight: 600 }}>🤖 OpenAI Raw Response:</span>
+            <pre style={{ 
+              marginTop: 6, 
+              padding: 10, 
+              background: '#0f172a', 
+              border: '1px solid #1e3a8a',
+              color: '#93c5fd', 
+              fontSize: 11, 
+              borderRadius: 6,
+              overflowX: 'auto',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-all',
+              userSelect: 'all'
+            }}>
+              {post.openai_raw_dump}
+            </pre>
+          </div>
+        )}
       </div>
 
       {/* ── Action buttons ────────────────────────────────────────── */}

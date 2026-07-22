@@ -224,11 +224,15 @@ exports.onPostCreated = onDocumentCreated({
         if (isFlagged) {
             await postRef.update({ 
                 status: 'flagged',
-                moderationResult: result // Save the result for admin review
+                moderationResult: result, // Save the result for admin review
+                openai_raw_dump: JSON.stringify(result, null, 2)
             });
             console.log(`Post ${postId} flagged and hidden.`);
         } else {
-            await postRef.update({ status: 'approved' });
+            await postRef.update({ 
+                status: 'approved',
+                openai_raw_dump: JSON.stringify(result, null, 2)
+            });
             console.log(`Post ${postId} approved and live.`);
         }
     } catch (err) {
