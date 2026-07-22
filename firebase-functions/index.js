@@ -154,7 +154,7 @@ const openAIKey = defineSecret('OPENAI_API_KEY');
 
 exports.onPostCreated = onDocumentCreated({
     document: 'posts/{postId}',
-    region: 'us-central1',
+    region: 'europe-west1',
     secrets: [openAIKey]
 }, async (event) => {
     const postDoc = event.data;
@@ -233,7 +233,6 @@ exports.onPostCreated = onDocumentCreated({
         }
     } catch (err) {
         console.error("Moderation error:", err);
-        // Fail-open or Fail-closed? Usually fail-open (approved) to avoid breaking the app if API is down
-        await postRef.update({ status: 'approved' });
+        await postRef.update({ status: 'flagged', error_log: err.message || err.toString() || 'Unknown backend error' });
     }
 });

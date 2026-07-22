@@ -131,10 +131,33 @@ function FlaggedCard({ post }) {
         />
       )}
 
-      {/* ── Flag reason ───────────────────────────────────────────── */}
+      {/* ── Flag reason & Backend Error Log ───────────────────────── */}
       <div style={{ padding: '10px 20px', borderBottom: '1px solid #1a1a1a' }}>
-        <span style={{ color: '#f87171', fontSize: 12, fontWeight: 600 }}>⚠ Reason: </span>
-        <span style={{ color: '#888', fontSize: 12 }}>{post.flagReason || 'Policy violation detected'}</span>
+        <div>
+          <span style={{ color: '#f87171', fontSize: 12, fontWeight: 600 }}>⚠ Reason: </span>
+          <span style={{ color: '#888', fontSize: 12 }}>{post.flagReason || 'Policy violation detected'}</span>
+        </div>
+        
+        {post.error_log && (
+          <div style={{ marginTop: 12 }}>
+            <span style={{ color: '#ffb800', fontSize: 12, fontWeight: 600 }}>🔧 Backend Crash Log:</span>
+            <pre style={{ 
+              marginTop: 6, 
+              padding: 10, 
+              background: '#1a1600', 
+              border: '1px solid #332b00',
+              color: '#ffb800', 
+              fontSize: 11, 
+              borderRadius: 6,
+              overflowX: 'auto',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-all',
+              userSelect: 'all' // Makes it easy to long-press and copy on mobile
+            }}>
+              {post.error_log}
+            </pre>
+          </div>
+        )}
       </div>
 
       {/* ── Action buttons ────────────────────────────────────────── */}
