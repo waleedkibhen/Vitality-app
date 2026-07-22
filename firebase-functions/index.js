@@ -188,11 +188,9 @@ exports.onPostCreated = onDocumentCreated({
         const publicId = data.cloudinaryPublicId;
         if (publicId) {
             const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-            // Generate frame URLs directly from Cloudinary
-            const frame0 = `https://res.cloudinary.com/${cloudName}/video/upload/so_0/v1/${publicId}.jpg`;
-            const frame50 = `https://res.cloudinary.com/${cloudName}/video/upload/so_50p/v1/${publicId}.jpg`;
+            // Generate frame URL directly from Cloudinary (using f_auto,q_auto)
+            const frame50 = `https://res.cloudinary.com/${cloudName}/video/upload/f_auto,q_auto/so_50p/v1/${publicId}.jpg`;
             
-            inputs.push({ type: "image_url", image_url: { url: frame0 } });
             inputs.push({ type: "image_url", image_url: { url: frame50 } });
         }
 
@@ -200,6 +198,8 @@ exports.onPostCreated = onDocumentCreated({
             await postRef.update({ status: 'approved' });
             return;
         }
+
+        console.log("DEBUG OPENAI INPUTS PAYLOAD:", JSON.stringify(inputs, null, 2));
 
         const moderation = await openai.moderations.create({
             model: "omni-moderation-latest",

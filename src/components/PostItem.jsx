@@ -5,6 +5,7 @@ import { db, functions } from '../lib/firebase'
 import { Trash2, MessageCircle, Heart, BarChart3, Share, X, Info, Star, Flag } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
+import CommentThread from './CommentThread'
 
 function timeAgo(date) {
   if (!date) return ''
@@ -28,7 +29,6 @@ export default function PostItem({ post }) {
   const hasViewed = useRef(false)
   
   const [comments, setComments] = useState([])
-  const [commentText, setCommentText] = useState('')
   const [hasRated, setHasRated] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false)
@@ -178,22 +178,7 @@ export default function PostItem({ post }) {
     }
   }
 
-  const handleComment = async (e) => {
-    e.preventDefault()
-    if (!commentText.trim()) return
-    
-    const text = commentText.trim()
-    setCommentText('') // optimistically clear input
-    
-    try {
-      await addDoc(collection(db, 'posts', post.id, 'comments'), {
-        text,
-        createdAt: serverTimestamp()
-      })
-    } catch (err) {
-      console.error("Failed to post comment:", err)
-    }
-  }
+
 
   const createdAtDate = post.createdAt?.toDate ? post.createdAt.toDate() : null
 
@@ -383,49 +368,8 @@ export default function PostItem({ post }) {
               </div>
             )}
             
-            {/* Comment List */}
-            <div className="flex flex-col gap-3 max-h-[35vh] overflow-y-auto mt-4 pl-[3.25rem] pr-2 scrollbar-hide">
-               {comments.map(c => (
-                 <div key={c.id} className="text-[#e1e1e1] text-[14px] bg-[#1a1a1a] p-3 rounded-xl border border-[#222]">
-                   {c.text}
-                 </div>
-               ))}
-               {comments.length === 0 && <p className="text-[#555] text-sm italic py-2">No replies yet.</p>}
-            </div>
-
-            {/* Reply Input */}
-            <form onSubmit={(e) => {
-              handleComment(e);
-              setIsCommentModalOpen(false);
-            }} className="flex gap-3 mt-4 pt-4 border-t border-[#222]">
-              {user?.profilePicUrl ? (
-                <img src={user.profilePicUrl} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-[#2563EB]/20 flex items-center justify-center shrink-0">
-                  <span className="text-[#2563EB] font-bold">{user?.username?.charAt(0) || '?'}</span>
-                </div>
-              )}
-              <div className="flex-1 flex flex-col gap-3 min-w-0">
-                <p className="text-[#888] text-sm">Replying to <span className="text-[#2563EB]">@{post.author?.username || 'user'}</span></p>
-                <input 
-                  type="text" 
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Write a comment..."
-                  autoFocus
-                  className="bg-transparent text-white text-[15px] placeholder-[#666] outline-none w-full border-b border-transparent focus:border-[#222] pb-1 transition-colors"
-                />
-                <div className="flex justify-end mt-1">
-                  <button 
-                    type="submit" 
-                    disabled={!commentText.trim()}
-                    className="bg-[#2563EB] text-white px-5 py-1.5 rounded-full text-sm font-bold transition-colors hover:bg-[#1D4ED8] disabled:opacity-50"
-                  >
-                    Reply
-                  </button>
-                </div>
-              </div>
-            </form>
+            {/* Comment Thread Component */}
+            <CommentThread postId={post.id} postAuthor={post.author} />
             
           </div>
         </div>
