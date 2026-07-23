@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   collection, query, where, orderBy, limit,
-  onSnapshot, doc, updateDoc, deleteDoc
+  onSnapshot, doc, updateDoc, deleteDoc, collectionGroup
 } from 'firebase/firestore'
 import { httpsCallable } from 'firebase/functions'
 import { db, functions } from '../lib/firebase'
@@ -224,33 +224,189 @@ function cardStyle(bg, border) {
   }
 }
 
+// ── Flagged Comment Card ───────────────────────────────────────────────────────
+
+function FlaggedCommentCard({ comment }) {
+  const [busy, setBusy] = useState(false)
+  const [done, setDone] = useState(null)
+
+  const handleApprove = async () => {
+    setBusy(true)
+    try {
+      // Assuming comment is stored at posts/{postId}/comments/{commentId}
+      // Wait, we need the path! The snapshot in collectionGroup gives us the full path in doc.ref
+      await updateDoc(comment.ref, { status: 'approved' })
+      setDone('approved')
+    } catch (e) {
+      console.error('Approve failed:', e)
+      setBusy(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!window.confirm(`Permanently delete this comment?`)) return
+    setBusy(true)
+    try {
+      await deleteDoc(comment.ref)
+      setDone('deleted')
+    } catch (e) {
+      console.error('Delete failed:', e)
+      setBusy(false)
+    }
+  }
+
+  if (done === 'approved') return (
+    <div style={cardStyle('#052e16', '#14532d')}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#4ade80', fontSize: 14, fontWeight: 600, padding: 16 }}>
+        <span>✓</span> Comment approved and pushed to public feed.
+      </div>
+    </div>
+  )
+
+  if (done === 'deleted') return (
+    <div style={cardStyle('#1a0505', '#450a0a')}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#f87171', fontSize: 14, fontWeight: 600, padding: 16 }}>
+        <span>✗</span> Comment permanently deleted.
+      </div>
+    </div>
+  )
+
+  return (
+    <div style={cardStyle('#111', '#2a2a2a')}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid #222' }}>
+        {comment.authorProfilePic ? (
+          <img src={comment.authorProfilePic} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+        ) : (
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: '#555' }}>
+            👤
+          </div>
+        )}
+        <div style={{ flex: 1 }}>
+          <div style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>
+            {comment.authorUsername || 'Unknown User'}
+          </div>
+          <div style={{ color: '#888', fontSize: 12, marginTop: 2 }}>
+            Posted {timeAgo(comment.createdAt)}
+          </div>
+        </div>
+        <StatusPill label="Flagged" color="red" />
+      </div>
+
+      <div style={{ padding: '16px 20px', color: '#eee', fontSize: 15, lineHeight: 1.5, borderBottom: '1px solid #1a1a1a', whiteSpace: 'pre-wrap' }}>
+        {comment.text}
+      </div>
+
+      <div style={{ padding: '10px 20px', borderBottom: '1px solid #1a1a1a' }}>
+        <span style={{ color: '#f87171', fontSize: 12, fontWeight: 600 }}>⚠ Flagged by AI Moderation</span>
+        
+        {comment.moderationResult && (
+          <div style={{ marginTop: 12 }}>
+            <span style={{ color: '#60a5fa', fontSize: 12, fontWeight: 600 }}>🤖 OpenAI Raw Scores:</span>
+            <pre style={{ 
+              marginTop: 6, padding: 10, background: '#0f172a', border: '1px solid #1e3a8a',
+              color: '#93c5fd', fontSize: 11, borderRadius: 6, overflowX: 'auto', whiteSpace: 'pre-wrap'
+            }}>
+              {JSON.stringify(comment.moderationResult.category_scores, null, 2)}
+            </pre>
+          </div>
+        )}
+        
+        {comment.error_log && (
+          <div style={{ marginTop: 12 }}>
+            <span style={{ color: '#ffb800', fontSize: 12, fontWeight: 600 }}>🔧 Backend Error:</span>
+            <pre style={{ 
+              marginTop: 6, padding: 10, background: '#1a1600', border: '1px solid #332b00',
+              color: '#ffb800', fontSize: 11, borderRadius: 6, overflowX: 'auto', whiteSpace: 'pre-wrap'
+            }}>
+              {comment.error_log}
+            </pre>
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, padding: '14px 20px' }}>
+        <button
+          onClick={handleApprove}
+          disabled={busy}
+          style={{
+            flex: 1, padding: '10px 0', borderRadius: 10, border: '1px solid #14532d',
+            background: busy ? '#0a0a0a' : '#052e16', color: busy ? '#555' : '#4ade80',
+            fontSize: 14, fontWeight: 700, cursor: busy ? 'not-allowed' : 'pointer', transition: 'all 0.15s'
+          }}
+        >
+          {busy ? '...' : '✓ Approve'}
+        </button>
+        <button
+          onClick={handleDelete}
+          disabled={busy}
+          style={{
+            flex: 1, padding: '10px 0', borderRadius: 10, border: '1px solid #7f1d1d',
+            background: busy ? '#0a0a0a' : '#1f0505', color: busy ? '#555' : '#f87171',
+            fontSize: 14, fontWeight: 700, cursor: busy ? 'not-allowed' : 'pointer', transition: 'all 0.15s'
+          }}
+        >
+          {busy ? '...' : '✕ Delete'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Main AdminModeration Page ─────────────────────────────────────────────────
 
 export default function AdminModeration() {
+  const [activeTab, setActiveTab] = useState('posts') // 'posts' | 'comments'
+  
   const [posts, setPosts]     = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState(null)
+  const [postsLoading, setPostsLoading] = useState(true)
+  const [postsError, setPostsError]     = useState(null)
+
+  const [comments, setComments]     = useState([])
+  const [commentsLoading, setCommentsLoading] = useState(true)
+  const [commentsError, setCommentsError]     = useState(null)
 
   useEffect(() => {
-    const q = query(
+    // 1. Listen to flagged posts
+    const qPosts = query(
       collection(db, 'posts'),
       where('status', '==', 'flagged'),
-      // Remove orderBy('flaggedAt') to prevent missing data if flaggedAt isn't set, rely on status filter
-      // Add limit to prevent massive read costs if many posts are flagged
       limit(50)
     )
 
-    const unsub = onSnapshot(q, snap => {
-      setPosts(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-      setLoading(false)
+    const unsubPosts = onSnapshot(qPosts, snap => {
+      setPosts(snap.docs.map(d => ({ id: d.id, ref: d.ref, ...d.data() })))
+      setPostsLoading(false)
     }, err => {
-      console.error('Admin query failed:', err)
-      setError('Failed to load flagged posts. Make sure Firestore rules allow admin reads.')
-      setLoading(false)
+      console.error('Posts query failed:', err)
+      setPostsError('Failed to load flagged posts.')
+      setPostsLoading(false)
     })
 
-    return () => unsub()
+    // 2. Listen to flagged comments via collectionGroup
+    const qComments = query(
+      collectionGroup(db, 'comments'),
+      where('status', '==', 'flagged'),
+      limit(50)
+    )
+
+    const unsubComments = onSnapshot(qComments, snap => {
+      setComments(snap.docs.map(d => ({ id: d.id, ref: d.ref, ...d.data() })))
+      setCommentsLoading(false)
+    }, err => {
+      console.error('Comments query failed:', err)
+      setCommentsError('Failed to load flagged comments. Index may still be building.')
+      setCommentsLoading(false)
+    })
+
+    return () => {
+      unsubPosts()
+      unsubComments()
+    }
   }, [])
+
+  const currentList = activeTab === 'posts' ? posts : comments
+  const isLoading = activeTab === 'posts' ? postsLoading : commentsLoading
+  const currentError = activeTab === 'posts' ? postsError : commentsError
 
   return (
     <div style={{ minHeight: '100vh', background: '#080808', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -263,48 +419,67 @@ export default function AdminModeration() {
             <h1 style={{ color: '#fff', fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>
               Admin Moderation
             </h1>
-            {!loading && (
-              <span style={{
-                marginLeft: 4, background: posts.length > 0 ? '#7f1d1d' : '#1a1a1a',
-                color: posts.length > 0 ? '#f87171' : '#555',
-                border: `1px solid ${posts.length > 0 ? '#b91c1c' : '#2a2a2a'}`,
-                borderRadius: 20, padding: '2px 10px', fontSize: 12, fontWeight: 700
-              }}>
-                {posts.length} flagged
-              </span>
-            )}
           </div>
           <p style={{ color: '#555', fontSize: 13, margin: 0 }}>
-            Review content flagged by Sightengine. Approve to publish or delete to remove permanently.
+            Review content flagged by Sightengine or OpenAI. Approve to publish or delete to remove permanently.
           </p>
         </div>
 
+        {/* ── Tabs ──────────────────────────────────────────────── */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 24, borderBottom: '1px solid #222', paddingBottom: 12 }}>
+          <button
+            onClick={() => setActiveTab('posts')}
+            style={{
+              padding: '8px 16px', borderRadius: 8, fontSize: 14, fontWeight: 600, transition: 'all 0.2s',
+              background: activeTab === 'posts' ? '#222' : 'transparent',
+              color: activeTab === 'posts' ? '#fff' : '#888',
+              border: 'none', cursor: 'pointer'
+            }}
+          >
+            Videos {posts.length > 0 && <span style={{ marginLeft: 6, color: '#f87171' }}>({posts.length})</span>}
+          </button>
+          <button
+            onClick={() => setActiveTab('comments')}
+            style={{
+              padding: '8px 16px', borderRadius: 8, fontSize: 14, fontWeight: 600, transition: 'all 0.2s',
+              background: activeTab === 'comments' ? '#222' : 'transparent',
+              color: activeTab === 'comments' ? '#fff' : '#888',
+              border: 'none', cursor: 'pointer'
+            }}
+          >
+            Comments {comments.length > 0 && <span style={{ marginLeft: 6, color: '#f87171' }}>({comments.length})</span>}
+          </button>
+        </div>
+
         {/* ── States ────────────────────────────────────────────── */}
-        {loading && (
+        {isLoading && (
           <div style={{ textAlign: 'center', padding: 60 }}>
             <div style={{ width: 28, height: 28, border: '2px solid #222', borderTop: '2px solid #fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-            <p style={{ color: '#555', fontSize: 13 }}>Loading flagged posts…</p>
+            <p style={{ color: '#555', fontSize: 13 }}>Loading flagged {activeTab}…</p>
             <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
           </div>
         )}
 
-        {error && (
+        {currentError && (
           <div style={{ background: '#1a0505', border: '1px solid #450a0a', borderRadius: 12, padding: '16px 20px', color: '#f87171', fontSize: 14 }}>
-            {error}
+            {currentError}
           </div>
         )}
 
-        {!loading && !error && posts.length === 0 && (
+        {!isLoading && !currentError && currentList.length === 0 && (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: '#333' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>✓</div>
             <p style={{ color: '#4ade80', fontSize: 16, fontWeight: 700, margin: '0 0 6px' }}>All clear!</p>
-            <p style={{ color: '#444', fontSize: 13, margin: 0 }}>No flagged posts waiting for review.</p>
+            <p style={{ color: '#444', fontSize: 13, margin: 0 }}>No flagged {activeTab} waiting for review.</p>
           </div>
         )}
 
-        {/* ── Flagged posts list ─────────────────────────────────── */}
+        {/* ── Flagged items list ─────────────────────────────────── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {posts.map(post => <FlaggedCard key={post.id} post={post} />)}
+          {activeTab === 'posts'
+            ? currentList.map(post => <FlaggedCard key={post.id} post={post} />)
+            : currentList.map(comment => <FlaggedCommentCard key={comment.id} comment={comment} />)
+          }
         </div>
 
       </div>
