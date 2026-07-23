@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { collection, query, orderBy, onSnapshot, addDoc, updateDoc, doc, serverTimestamp, arrayUnion, arrayRemove } from 'firebase/firestore'
+import { collection, query, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, arrayUnion, arrayRemove } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
-import { Heart } from 'lucide-react'
+import { Heart, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 function timeAgo(date) {
@@ -128,11 +128,22 @@ export default function CommentThread({ postId, postAuthor }) {
     }
   }
 
+  const handleDelete = async (commentId) => {
+    if (!window.confirm("Are you sure you want to delete this comment?")) return
+    try {
+      await deleteDoc(doc(db, 'posts', postId, 'comments', commentId))
+    } catch (err) {
+      console.error("Failed to delete comment:", err)
+      toast.error("Failed to delete comment")
+    }
+  }
+
   const renderComment = (c, isReply = false) => {
     const userId = user?.uid || user?.username
     const hasUpvoted = c.upvoters?.includes(userId)
     const timeStr = c.createdAt?.toDate ? timeAgo(c.createdAt.toDate()) : ''
     const isCreator = c.authorUsername === postAuthor?.username
+    const isOwner = c.authorId === userId || c.authorUsername === user?.username
     
     return (
       <div key={c.id} className={`flex gap-3 mb-4 ${isReply ? 'ml-10 mt-[-4px]' : ''}`}>
@@ -174,6 +185,16 @@ export default function CommentThread({ postId, postAuthor }) {
             >
               Reply
             </button>
+
+            {isOwner && (
+              <button 
+                onClick={() => handleDelete(c.id)}
+                className="text-[#888] hover:text-red-500 transition-colors ml-auto"
+                aria-label="Delete comment"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
           </div>
         </div>
       </div>

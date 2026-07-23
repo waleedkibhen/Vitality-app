@@ -259,18 +259,23 @@ exports.onCommentCreated = onDocumentCreated({
 
     try {
         // 1. Anti-Spam Check: Delete if multiple comments within 15 seconds
+        // Fetch all comments by this author on this post to avoid requiring a composite index
         const commentsSnapshot = await admin.firestore()
             .collection(`posts/${postId}/comments`)
             .where('authorId', '==', authorId)
-            .orderBy('createdAt', 'desc')
-            .limit(2)
             .get();
 
         if (commentsSnapshot.docs.length >= 2) {
-            const latestDoc = commentsSnapshot.docs[0];
-            const prevDoc = commentsSnapshot.docs[1];
+            // Sort in memory by createdAt descending
+            const docs = commentsSnapshot.docs.sort((a, b) => {
+                const timeA = a.data().createdAt?.toMillis ? a.data().createdAt.toMillis() : 0;
+                const timeB = b.data().createdAt?.toMillis ? b.data().createdAt.toMillis() : 0;
+                return timeB - timeA;
+            });
 
-            // Safely handle missing server timestamps during local trigger execution
+            const latestDoc = docs[0];
+            const prevDoc = docs[1];
+
             const latestTime = latestDoc.data().createdAt?.toMillis ? latestDoc.data().createdAt.toMillis() : Date.now();
             const prevTime = prevDoc.data().createdAt?.toMillis ? prevDoc.data().createdAt.toMillis() : null;
 
@@ -285,6 +290,8 @@ exports.onCommentCreated = onDocumentCreated({
         const apiKey = openAIKey.value();
         if (!apiKey) {
             console.error("Missing OPENAI_API_KEY. Skipping comment moderation.");
+            // Fail closed if API key is missing
+            await snap.ref.update({ status: 'flagged', error_log: 'Missing OPENAI_API_KEY' });
             return;
         }
 
@@ -310,8 +317,13 @@ exports.onCommentCreated = onDocumentCreated({
                 moderationResult: result 
             });
         }
-        // If not flagged, do nothing. We filter out 'flagged' on the frontend.
+        // If not flagged, leave it alone.
     } catch (err) {
         console.error("Comment moderation error:", err);
+        // Fail-closed requirement
+        await snap.ref.update({ 
+            status: 'flagged', 
+            error_log: err.message || err.toString() || 'Unknown backend error' 
+        });
     }
 });
