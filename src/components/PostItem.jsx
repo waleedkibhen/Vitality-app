@@ -339,7 +339,7 @@ export default function PostItem({ post }) {
               <X size={20} />
             </button>
             
-            <h2 className="text-white text-lg font-bold text-center border-b border-[#222] pb-3 mb-0">Comments</h2>
+            <h2 className="text-white text-lg font-bold text-center border-b border-[#222] pb-3 mb-0">Comments ({comments.length})</h2>
             
             {/* Comment Thread Component */}
             <CommentThread postId={post.id} postAuthor={post.author} />

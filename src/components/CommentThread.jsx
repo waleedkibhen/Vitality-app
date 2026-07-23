@@ -181,9 +181,8 @@ export default function CommentThread({ postId, postAuthor }) {
   }
 
   return (
-    <div className="flex flex-col h-full mt-4 border-t border-[#222] pt-4">
-      <h2 className="text-white text-md font-bold mb-3 px-2">Comments ({comments.length})</h2>
-      <div className="flex-1 overflow-y-auto px-2 scrollbar-hide py-1 max-h-[35vh]">
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto px-2 scrollbar-hide max-h-[35vh]">
         {roots.length === 0 ? (
           <p className="text-[#555] text-sm text-center py-6">No comments yet. Be the first to start the conversation!</p>
         ) : (
