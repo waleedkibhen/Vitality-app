@@ -27,14 +27,23 @@ export default function CommentThread({ postId, postAuthor }) {
   const [commentText, setCommentText] = useState('')
   const [replyingTo, setReplyingTo] = useState(null) // { id: rootCommentId, username: string }
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // UI Polish States
+  const [lastCommentTime, setLastCommentTime] = useState(0)
+  const [expandedReplies, setExpandedReplies] = useState({})
 
   useEffect(() => {
     const q = query(collection(db, 'posts', postId, 'comments'), orderBy('createdAt', 'asc'))
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setComments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
+      // Filter out flagged comments from UI entirely
+      setComments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(c => c.status !== 'flagged'))
     })
     return () => unsubscribe()
   }, [postId])
+
+  const toggleReplies = (rootId) => {
+    setExpandedReplies(prev => ({ ...prev, [rootId]: !prev[rootId] }))
+  }
 
   // Group comments: roots and children
   const roots = comments.filter(c => !c.parentId)
@@ -46,15 +55,34 @@ export default function CommentThread({ postId, postAuthor }) {
     }
   })
 
+  // Sort children so author's replies are first
+  Object.keys(childrenMap).forEach(parentId => {
+    childrenMap[parentId].sort((a, b) => {
+      const aIsCreator = a.authorUsername === postAuthor?.username
+      const bIsCreator = b.authorUsername === postAuthor?.username
+      if (aIsCreator && !bIsCreator) return -1
+      if (!aIsCreator && bIsCreator) return 1
+      return 0 // Keep original createdAt order otherwise
+    })
+  })
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!commentText.trim() || !user) return
+
+    // 15-second frontend cooldown
+    const now = Date.now()
+    if (now - lastCommentTime < 15000) {
+      toast.error('Please wait 15 seconds before posting another comment.')
+      return
+    }
+
     setIsSubmitting(true)
     
     try {
       await addDoc(collection(db, 'posts', postId, 'comments'), {
         text: commentText.trim(),
-        authorId: user.uid || user.username, // some mock users use username as uid
+        authorId: user.uid || user.username,
         authorUsername: user.username,
         authorName: user.name || user.username,
         authorProfilePic: user.profilePicUrl || null,
@@ -65,6 +93,7 @@ export default function CommentThread({ postId, postAuthor }) {
       })
       setCommentText('')
       setReplyingTo(null)
+      setLastCommentTime(Date.now())
     } catch (err) {
       console.error("Failed to post comment:", err)
       toast.error("Failed to post comment")
@@ -103,6 +132,7 @@ export default function CommentThread({ postId, postAuthor }) {
     const userId = user?.uid || user?.username
     const hasUpvoted = c.upvoters?.includes(userId)
     const timeStr = c.createdAt?.toDate ? timeAgo(c.createdAt.toDate()) : ''
+    const isCreator = c.authorUsername === postAuthor?.username
     
     return (
       <div key={c.id} className={`flex gap-3 mb-4 ${isReply ? 'ml-10 mt-[-4px]' : ''}`}>
@@ -117,8 +147,13 @@ export default function CommentThread({ postId, postAuthor }) {
         
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-baseline gap-2 flex-wrap">
             <span className="text-white text-[13px] font-bold">{c.authorUsername}</span>
+            {isCreator && (
+              <span className="text-[9px] font-bold bg-[#2563EB]/20 text-[#2563EB] px-1.5 py-0.5 rounded border border-[#2563EB]/30 uppercase tracking-wider translate-y-[-1px]">
+                Creator
+              </span>
+            )}
             <span className="text-[#666] text-[12px]">{timeStr}</span>
           </div>
           <p className="text-[#e1e1e1] text-[14px] mt-0.5 break-words">{c.text}</p>
@@ -152,12 +187,38 @@ export default function CommentThread({ postId, postAuthor }) {
         {roots.length === 0 ? (
           <p className="text-[#555] text-sm text-center py-6">No comments yet. Be the first to start the conversation!</p>
         ) : (
-          roots.map(root => (
-            <div key={root.id}>
-              {renderComment(root, false)}
-              {childrenMap[root.id]?.map(child => renderComment(child, true))}
-            </div>
-          ))
+          roots.map(root => {
+            const children = childrenMap[root.id] || []
+            const isExpanded = expandedReplies[root.id]
+
+            return (
+              <div key={root.id}>
+                {renderComment(root, false)}
+                
+                {children.length > 0 && !isExpanded && (
+                  <button 
+                    onClick={() => toggleReplies(root.id)}
+                    className="ml-[3.25rem] mt-[-8px] mb-4 text-[#888] text-[12px] font-bold flex items-center gap-2 hover:text-[#bbb] transition-colors"
+                  >
+                    <div className="w-6 h-[1px] bg-[#333]"></div>
+                    View {children.length} {children.length === 1 ? 'reply' : 'replies'}
+                  </button>
+                )}
+                
+                {isExpanded && children.map(child => renderComment(child, true))}
+                
+                {isExpanded && children.length > 0 && (
+                  <button 
+                    onClick={() => toggleReplies(root.id)}
+                    className="ml-[3.25rem] mt-[-8px] mb-4 text-[#888] text-[12px] font-bold flex items-center gap-2 hover:text-[#bbb] transition-colors"
+                  >
+                    <div className="w-6 h-[1px] bg-[#333]"></div>
+                    Hide replies
+                  </button>
+                )}
+              </div>
+            )
+          })
         )}
       </div>
 

@@ -240,3 +240,78 @@ exports.onPostCreated = onDocumentCreated({
         await postRef.update({ status: 'flagged', error_log: err.message || err.toString() || 'Unknown backend error' });
     }
 });
+
+exports.onCommentCreated = onDocumentCreated({
+    document: 'posts/{postId}/comments/{commentId}',
+    region: 'europe-west1',
+    secrets: [openAIKey]
+}, async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const data = snap.data();
+    const postId = event.params.postId;
+    const commentId = event.params.commentId;
+    const authorId = data.authorId;
+    const text = data.text;
+
+    if (!authorId || !text) return;
+
+    try {
+        // 1. Anti-Spam Check: Delete if multiple comments within 15 seconds
+        const commentsSnapshot = await admin.firestore()
+            .collection(`posts/${postId}/comments`)
+            .where('authorId', '==', authorId)
+            .orderBy('createdAt', 'desc')
+            .limit(2)
+            .get();
+
+        if (commentsSnapshot.docs.length >= 2) {
+            const latestDoc = commentsSnapshot.docs[0];
+            const prevDoc = commentsSnapshot.docs[1];
+
+            // Safely handle missing server timestamps during local trigger execution
+            const latestTime = latestDoc.data().createdAt?.toMillis ? latestDoc.data().createdAt.toMillis() : Date.now();
+            const prevTime = prevDoc.data().createdAt?.toMillis ? prevDoc.data().createdAt.toMillis() : null;
+
+            if (prevTime && (latestTime - prevTime < 15000)) {
+                console.warn(`Spam detected from ${authorId} on comment ${commentId}. Deleting.`);
+                await snap.ref.delete();
+                return; // Stop here, don't run moderation
+            }
+        }
+
+        // 2. OpenAI Text Moderation
+        const apiKey = openAIKey.value();
+        if (!apiKey) {
+            console.error("Missing OPENAI_API_KEY. Skipping comment moderation.");
+            return;
+        }
+
+        const openai = new OpenAI({ apiKey });
+        
+        const moderation = await openai.moderations.create({
+            model: "omni-moderation-latest",
+            input: text
+        });
+
+        const result = moderation.results[0];
+        const categoryScores = result.category_scores;
+
+        const isFlagged = 
+            categoryScores.hate >= 0.8 || 
+            categoryScores.harassment >= 0.8 || 
+            categoryScores.violence >= 0.8;
+
+        if (isFlagged) {
+            console.warn(`Comment ${commentId} flagged for hate/harassment/violence.`);
+            await snap.ref.update({ 
+                status: 'flagged',
+                moderationResult: result 
+            });
+        }
+        // If not flagged, do nothing. We filter out 'flagged' on the frontend.
+    } catch (err) {
+        console.error("Comment moderation error:", err);
+    }
+});
