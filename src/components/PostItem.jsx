@@ -339,34 +339,7 @@ export default function PostItem({ post }) {
               <X size={20} />
             </button>
             
-            <h2 className="text-white text-lg font-bold text-center border-b border-[#222] pb-3 mb-2">Reply</h2>
-            
-            {/* Modal Content - Original Post Context */}
-            {post.author && (
-              <div className="flex gap-3 relative">
-                {/* Connecting Line */}
-                <div className="absolute left-[19px] top-10 bottom-[-20px] w-[2px] bg-[#333]" />
-                
-                {post.author.profilePicUrl ? (
-                  <img src={post.author.profilePicUrl} alt="" className="w-10 h-10 rounded-full object-cover z-10 bg-[#111]" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-[#1a1a1a] flex items-center justify-center z-10 border border-[#333]">
-                    <span className="text-[#666] font-bold">{post.author?.username?.charAt(0) || '?'}</span>
-                  </div>
-                )}
-                <div className="flex flex-col flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 truncate">
-                    <span className="text-white font-bold truncate">{post.author?.name || 'Unknown'}</span>
-                    <span className="text-[#888] text-sm truncate">@{post.author?.username || 'user'}</span>
-                  </div>
-                  {post.caption && (
-                    <p className="text-[#ccc] text-[15px] mt-1 break-words whitespace-pre-wrap line-clamp-3">
-                      {post.caption.replace(/<[^>]*>?/gm, '')}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
+            <h2 className="text-white text-lg font-bold text-center border-b border-[#222] pb-3 mb-0">Comments</h2>
             
             {/* Comment Thread Component */}
             <CommentThread postId={post.id} postAuthor={post.author} />
